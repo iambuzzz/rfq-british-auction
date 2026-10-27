@@ -9,17 +9,19 @@ const rfqRoutes = require('./routes/rfqRoutes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const PORT = process.env.PORT || 8000;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+// can be more than one url, separated by comma
+// eg. http://localhost:5173,https://rfq-auction.vercel.app
+const CLIENT_URLS = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map((url) => url.trim());
 
 const app = express();
 // socket.io needs the raw http server, not the express app
 const server = http.createServer(app);
-const io = initSocket(server, CLIENT_URL);
+const io = initSocket(server, CLIENT_URLS);
 
 // controllers can now get io using req.app.get('io')
 app.set('io', io);
 
-app.use(cors({ origin: CLIENT_URL }));
+app.use(cors({ origin: CLIENT_URLS }));
 app.use(express.json());
 
 app.get('/', (req, res) => {

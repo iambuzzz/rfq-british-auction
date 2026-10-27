@@ -1,8 +1,8 @@
 const { Server } = require('socket.io');
 
-const initSocket = (server, clientUrl) => {
+const initSocket = (server, clientUrls) => {
   const io = new Server(server, {
-    cors: { origin: clientUrl },
+    cors: { origin: clientUrls },
   });
 
   io.on('connection', (socket) => {
