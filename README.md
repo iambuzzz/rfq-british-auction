@@ -5,6 +5,14 @@ If bidding happens close to the end, the auction gets **extended automatically**
 
 Built with the **MERN stack** - React frontend and Express backend run as two separate services and talk over REST + Socket.io.
 
+## Live Demo
+
+- **App:** https://rfq-british-auction-blue.vercel.app
+- **API:** https://rfq-british-auction.onrender.com/api/rfqs
+
+Tip: open any auction in two browser tabs and place a bid in one - the other tab updates instantly.
+To see an extension, create an RFQ that closes in 2-3 minutes with a small trigger window (eg. X = 2, Y = 1) and bid inside the last X minutes.
+
 ## Features
 
 - Create RFQ with British Auction config (trigger window X, extension Y, trigger type)
