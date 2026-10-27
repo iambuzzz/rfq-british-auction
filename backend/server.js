@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const connectDB = require('./config/db');
 const initSocket = require('./socket');
+const keepAlive = require('./utils/keepAlive');
 const rfqRoutes = require('./routes/rfqRoutes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
@@ -36,5 +37,6 @@ app.use(errorHandler);
 connectDB().then(() => {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    keepAlive();
   });
 });

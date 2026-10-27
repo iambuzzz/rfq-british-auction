@@ -241,6 +241,14 @@ Client sends `join-auction` / `leave-auction` with the RFQ id when it opens / cl
 - **Extension**: `newClose = min(currentCloseTime + Y, forcedCloseTime)`. Once close time reaches forced close no more extensions happen.
 - If two bids come at the exact same time, the close time is updated with a condition (`currentCloseTime` must still be the old value), so the auction is not extended twice for the same close time.
 
+## Deployment
+
+- Backend on **Render** (Web Service, root directory `backend`, build `npm install`, start `npm start`)
+- Frontend on **Vercel** (root directory `frontend`, `vercel.json` sends all routes to `index.html`)
+- Database on **MongoDB Atlas**
+
+Render free plan sleeps after 15 min without requests. To avoid the slow first request, the server pings its own url every 10 min (`utils/keepAlive.js`). It only runs on Render, because it uses the `RENDER_EXTERNAL_URL` variable that Render sets.
+
 ## Assumptions
 
 - No login. Supplier is identified by carrier name typed in the bid form.
