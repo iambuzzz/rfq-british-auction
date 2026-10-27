@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RFQ Auction - Schema</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --card: #111a2e;
+    --card2: #16223b;
+    --line: #2a3a5c;
+    --text: #e2e8f0;
+    --muted: #8b9bb8;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --orange: #f97316;
+    --mongo: #10b981;
+    --purple: #a78bfa;
+    --yellow: #facc15;
+    --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 22px; margin-bottom: 6px; }
+  h3 { font-size: 16px; margin-bottom: 8px; }
+  .sub { color: var(--muted); margin-bottom: 18px; }
+  section { margin-top: 48px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  nav.top { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  nav.top a { color: var(--text); text-decoration: none; border: 1px solid var(--line); padding: 6px 14px; border-radius: 999px; font-size: 14px; }
+  nav.top a:hover { border-color: var(--mongo); }
+
+  svg text { font-family: inherit; }
+  .row-in { opacity: 0; animation: rowIn 0.45s ease forwards; }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .tbl-in { opacity: 0; animation: tblIn 0.6s ease forwards; }
+  @keyframes tblIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .rel { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1.2s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .field-row:hover rect.bgrow { fill: #1f2d4d; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 4px; }
+  .t-pk { background: #facc15; color: #1a1a1a; }
+  .t-fk { background: #a78bfa; color: #1a1a1a; }
+  .t-uq { background: #38bdf8; color: #1a1a1a; }
+  .t-mv { background: #f97316; color: #1a1a1a; }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .note { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; opacity: 0; animation: tblIn 0.6s ease forwards; }
+  .note p, .note li { color: var(--muted); font-size: 14px; }
+  .note ul { padding-left: 18px; }
+  code { font-family: Menlo, monospace; font-size: 12.5px; color: #c7d2fe; background: rgba(99,102,241,0.12); padding: 1px 5px; border-radius: 4px; }
+
+  /* ranking animation */
+  .rank-stage { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .rank-box { position: relative; height: 290px; }
+  .rrow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    background: var(--card2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    transition: top 0.8s cubic-bezier(.5,.1,.2,1), opacity 0.5s ease, background 0.4s, border-color 0.4s;
+    font-size: 14px;
+  }
+  .rrow .who { flex: 1; font-weight: 600; }
+  .rrow .amt { font-family: Menlo, monospace; }
+  .rrow .time { color: var(--muted); font-size: 12px; width: 52px; }
+  .rrow .badge { min-width: 30px; text-align: center; font-weight: 700; font-size: 12px; border-radius: 6px; padding: 2px 6px; background: var(--line); opacity: 0; transition: opacity 0.4s; }
+  .rrow.old { opacity: 0.25; text-decoration: line-through; }
+  .rrow.l1 { border-color: var(--green); background: #0f2a1c; }
+  .rrow.l1 .badge { background: var(--green); color: #052e16; }
+  .rrow.show-badge .badge { opacity: 1; }
+  .rank-steps { list-style: none; }
+  .rank-steps li { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; background: var(--card2); color: var(--muted); border: 1px solid transparent; transition: all 0.4s; font-size: 14px; }
+  .rank-steps li.on { color: var(--text); border-color: var(--mongo); }
+
+  /* sample docs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .tabs button { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px; cursor: pointer; }
+  .tabs button.on { border-color: var(--mongo); color: var(--mongo); }
+  pre.json { background: #0b1120; border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 13px; overflow-x: auto; min-height: 300px; color: #cbd5e1; }
+  .k { color: #7dd3fc; } .s { color: #86efac; } .n { color: #fdba74; } .c { color: #64748b; }
+
+  @media (max-width: 900px) {
+    .grid3 { grid-template-columns: 1fr; }
+    .rank-stage { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Database Schema Design</h1>
+  <p class="sub">MongoDB · 3 collections · bids and logs reference their RFQ by ObjectId (one-to-many)</p>
+  <nav class="top">
+    <a href="#er">1. ER diagram</a>
+    <a href="#why">2. Design decisions</a>
+    <a href="#rank">3. How ranking is derived</a>
+    <a href="#docs">4. Sample documents</a>
+    <a href="architecture.html">← Architecture (HLD)</a>
+  </nav>
+
+  <!-- ================= ER DIAGRAM ================= -->
+  <section id="er">
+    <h2>1. Collections and relations</h2>
+    <p class="sub">Hover a field to see why it exists.</p>
+    <div class="panel">
+      <svg id="erSvg" viewBox="0 0 1200 560" width="100%"></svg>
+      <div class="legend">
+        <span><span class="tag t-pk">PK</span>primary key (_id)</span>
+        <span><span class="tag t-fk">FK</span>reference to rfqs._id</span>
+        <span><span class="tag t-uq">UQ</span>unique index</span>
+        <span><span class="tag t-mv">MOVES</span>changes when auction extends</span>
+        <span>── 1 RFQ has many bids / many logs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DECISIONS ================= -->
+  <section id="why">
+    <h2>2. Design decisions</h2>
+    <p class="sub">Things an interviewer is likely to ask about.</p>
+    <div class="grid3">
+      <div class="note" style="animation-delay: 0.1s">
+        <h3>Why separate collections, not embedded arrays?</h3>
+        <ul>
+          <li>Bids can grow without limit; embedding them in the RFQ doc would keep growing it (16MB doc limit) and every bid would rewrite the big doc.</li>
+          <li>Bids and logs are written very often and read on their own (sorted lists).</li>
+          <li>Small RFQ doc = fast listing page.</li>
+        </ul>
+      </div>
+      <div class="note" style="animation-delay: 0.25s">
+        <h3>Three close times on RFQ</h3>
+        <ul>
+          <li><code>bidCloseTime</code> - what buyer entered, never changes (for audit).</li>
+          <li><code>currentCloseTime</code> - moves forward on every extension.</li>
+          <li><code>forcedCloseTime</code> - hard limit. Extension = <code>min(current + Y, forced)</code>.</li>
+        </ul>
+      </div>
+      <div class="note" style="animation-delay: 0.4s">
+        <h3>Computed, not stored</h3>
+        <ul>
+          <li><b>Status</b> (Upcoming / Active / Closed / Force Closed) is calculated from time on every read, so no cron job is needed to close auctions.</li>
+          <li><b>Ranking</b> (L1, L2...) is built from bids each time, so it can never go out of sync.</li>
+        </ul>
+      </div>
+      <div class="note" style="animation-delay: 0.55s">
+        <h3>Stored for speed (denormalized)</h3>
+        <ul>
+          <li><code>lowestBid</code>, <code>totalBids</code>, <code>extensionCount</code> live on the RFQ so the listing page needs only one query.</li>
+          <li><code>lowestBid</code> is updated with <code>$min</code> → atomic, safe with parallel bids.</li>
+        </ul>
+      </div>
+      <div class="note" style="animation-delay: 0.7s">
+        <h3>Indexes</h3>
+        <ul>
+          <li><code>rfqs.referenceId</code> unique.</li>
+          <li><code>bids { rfq: 1, createdAt: 1 }</code> - "all bids of this RFQ".</li>
+          <li><code>activitylogs { rfq: 1, createdAt: -1 }</code> - latest activity first.</li>
+        </ul>
+      </div>
+      <div class="note" style="animation-delay: 0.85s">
+        <h3>Bid history is kept</h3>
+        <ul>
+          <li>Each new bid is a new document (never updated). Gives full history for audit.</li>
+          <li>Total amount = freight + origin + destination, saved once so we can sort on it.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RANKING ================= -->
+  <section id="rank">
+    <h2>3. How L1 / L2 / L3 is derived from the bids collection</h2>
+    <p class="sub">This is <code>buildRanking()</code> in utils/auctionHelper.js.</p>
+    <div class="panel rank-stage">
+      <div class="rank-box" id="rankBox"></div>
+      <ol class="rank-steps" id="rankSteps">
+        <li>1. Fetch all bids of the RFQ (sorted by time)</li>
+        <li>2. Keep only the latest bid of each carrier (older ones are ignored)</li>
+        <li>3. Sort by totalAmount, lowest first (tie → whoever bid first)</li>
+        <li>4. Position = rank → index 0 is L1, index 1 is L2 ...</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= SAMPLE DOCS ================= -->
+  <section id="docs">
+    <h2>4. Sample documents</h2>
+    <p class="sub">What is actually stored in MongoDB.</p>
+    <div class="panel">
+      <div class="tabs" id="tabs"></div>
+      <pre class="json" id="json"></pre>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ---------------- ER diagram ----------------
+  const tables = [
+    {
+      name: 'bids',
+      x: 20, y: 70, w: 330, color: '#3b82f6', delay: 0.5,
+      fields: [
+        ['_id', 'ObjectId', 'PK', 'Unique id of the bid'],
+        ['rfq', 'ObjectId', 'FK', 'Which RFQ this bid belongs to'],
+        ['carrierName', 'String', '', 'Supplier name. Used to group bids per supplier'],
+        ['freightCharges', 'Number', '', 'Main transport cost'],
+        ['originCharges', 'Number', '', 'Charges at pickup side'],
+        ['destinationCharges', 'Number', '', 'Charges at delivery side'],
+        ['totalAmount', 'Number', '', 'freight + origin + destination. Ranking is done on this'],
+        ['transitTimeDays', 'Number', '', 'How many days delivery takes'],
+        ['quoteValidity', 'Date', '', 'Quote is valid till this date'],
+        ['createdAt', 'Date', '', 'Bid time. Used for latest bid + tie break'],
+        ['updatedAt', 'Date', '', 'Added by mongoose timestamps'],
+      ],
+    },
+    {
+      name: 'rfqs',
+      x: 435, y: 20, w: 330, color: '#10b981', delay: 0,
+      fields: [
+        ['_id', 'ObjectId', 'PK', 'Unique id of the RFQ'],
+        ['referenceId', 'String', 'UQ', 'Readable id like RFQ-1001'],
+        ['name', 'String', '', 'RFQ name, eg. Mumbai to Delhi'],
+        ['pickupDate', 'Date', '', 'Pickup / service date'],
+        ['bidStartTime', 'Date', '', 'Bidding opens at this time'],
+        ['bidCloseTime', 'Date', '', 'Original close time, never changes'],
+        ['currentCloseTime', 'Date', 'MOVES', 'Real close time. Moves forward on each extension'],
+        ['forcedCloseTime', 'Date', '', 'Hard limit. Auction can never go beyond this'],
+        ['triggerWindowMinutes', 'Number', '', 'X - watch the last X minutes'],
+        ['extensionMinutes', 'Number', '', 'Y - add Y minutes when triggered'],
+        ['extensionTrigger', 'enum', '', 'BID_RECEIVED | ANY_RANK_CHANGE | L1_RANK_CHANGE'],
+        ['extensionCount', 'Number', '', 'How many times auction got extended'],
+        ['totalBids', 'Number', '', 'Count of bids, for listing page'],
+        ['lowestBid', 'Number', '', 'Current L1 price, updated with $min'],
+        ['createdAt', 'Date', '', 'mongoose timestamps'],
+        ['updatedAt', 'Date', '', 'mongoose timestamps'],
+      ],
+    },
+    {
+      name: 'activitylogs',
+      x: 850, y: 70, w: 330, color: '#f97316', delay: 1,
+      fields: [
+        ['_id', 'ObjectId', 'PK', 'Unique id of the log'],
+        ['rfq', 'ObjectId', 'FK', 'Which RFQ this activity belongs to'],
+        ['type', 'enum', '', 'RFQ_CREATED | BID_PLACED | TIME_EXTENDED'],
+        ['message', 'String', '', 'Text shown in the activity log'],
+        ['oldCloseTime', 'Date', '', 'Only for TIME_EXTENDED: close time before'],
+        ['newCloseTime', 'Date', '', 'Only for TIME_EXTENDED: close time after'],
+        ['reason', 'String', '', 'Only for TIME_EXTENDED: why it extended'],
+        ['createdAt', 'Date', '', 'When it happened'],
+        ['updatedAt', 'Date', '', 'mongoose timestamps'],
+      ],
+    },
+  ];
+
+  const ROW = 28, HEAD = 46;
+  const tagColors = { PK: '#facc15', FK: '#a78bfa', UQ: '#38bdf8', MOVES: '#f97316' };
+  const er = document.getElementById("erSvg");
+  let svg = '';
+
+  // where each table's rows are, used to draw relation lines
+  const rowY = (table, fieldName) => {
+    const i = table.fields.findIndex((f) => f[0] === fieldName);
+    return table.y + HEAD + i * ROW + ROW / 2;
+  };
+
+  tables.forEach((t) => {
+    const h = HEAD + t.fields.length * ROW + 8;
+    svg += '<g class="tbl-in" style="animation-delay:' + t.delay + 's">';
+    svg += '<rect x="' + t.x + '" y="' + t.y + '" width="' + t.w + '" height="' + h + '" rx="12" fill="#111a2e" stroke="' + t.color + '" stroke-width="1.5"/>';
+    svg += '<path d="M' + t.x + ',' + (t.y + 12) + ' a12,12 0 0 1 12,-12 h' + (t.w - 24) + ' a12,12 0 0 1 12,12 v' + (HEAD - 12) + ' h-' + t.w + ' z" fill="' + t.color + '" opacity="0.18"/>';
+    svg += '<text x="' + (t.x + 16) + '" y="' + (t.y + 29) + '" style="font-size:17px;font-weight:700;fill:#e2e8f0">' + t.name + '</text>';
+    svg += '<text x="' + (t.x + t.w - 16) + '" y="' + (t.y + 29) + '" text-anchor="end" style="font-size:12px;fill:' + t.color + '">collection</text>';
+    svg += '</g>';
+
+    t.fields.forEach((f, i) => {
+      const y = t.y + HEAD + i * ROW;
+      const delay = t.delay + 0.4 + i * 0.07;
+      svg += '<g class="row-in field-row" style="animation-delay:' + delay + 's">';
+      svg += '<title>' + f[0] + ': ' + f[3] + '</title>';
+      svg += '<rect class="bgrow" x="' + (t.x + 6) + '" y="' + y + '" width="' + (t.w - 12) + '" height="' + (ROW - 2) + '" rx="5" fill="transparent"/>';
+      let textX = t.x + 16;
+      if (f[2]) {
+        const tw = f[2].length * 7 + 10;
+        svg += '<rect x="' + textX + '" y="' + (y + 6) + '" width="' + tw + '" height="15" rx="3" fill="' + tagColors[f[2]] + '"/>';
+        svg += '<text x="' + (textX + tw / 2) + '" y="' + (y + 17) + '" text-anchor="middle" style="font-size:10px;font-weight:700;fill:#111">' + f[2] + '</text>';
+        textX += tw + 8;
+      }
+      svg += '<text x="' + textX + '" y="' + (y + 18) + '" style="font-size:13.5px;fill:#e2e8f0;font-family:Menlo,monospace">' + f[0] + '</text>';
+      svg += '<text x="' + (t.x + t.w - 16) + '" y="' + (y + 18) + '" text-anchor="end" style="font-size:12px;fill:#8b9bb8">' + f[1] + '</text>';
+      svg += '</g>';
+    });
+  });
+
+  // relation lines: bids.rfq -> rfqs._id and activitylogs.rfq -> rfqs._id
+  const [bids, rfqs, logs] = tables;
+  const rfqIdY = rowY(rfqs, '_id');
+  const bidFkY = rowY(bids, 'rfq');
+  const logFkY = rowY(logs, 'rfq');
+
+  const p1 = 'M' + rfqs.x + ',' + rfqIdY + ' C' + (rfqs.x - 50) + ',' + rfqIdY + ' ' + (bids.x + bids.w + 50) + ',' + bidFkY + ' ' + (bids.x + bids.w) + ',' + bidFkY;
+  const p2 = 'M' + (rfqs.x + rfqs.w) + ',' + rfqIdY + ' C' + (rfqs.x + rfqs.w + 50) + ',' + rfqIdY + ' ' + (logs.x - 50) + ',' + logFkY + ' ' + logs.x + ',' + logFkY;
+
+  svg += '<path id="rel1" d="' + p1 + '" class="rel" style="animation-delay:2.4s" stroke="#a78bfa" stroke-width="2" fill="none"/>';
+  svg += '<path id="rel2" d="' + p2 + '" class="rel" style="animation-delay:2.6s" stroke="#a78bfa" stroke-width="2" fill="none"/>';
+
+  // "one" marker on rfqs side and crow's foot (many) on child side
+  const one = (x, y, dir) => '<line x1="' + (x + dir * 8) + '" y1="' + (y - 8) + '" x2="' + (x + dir * 8) + '" y2="' + (y + 8) + '" stroke="#a78bfa" stroke-width="2"/>';
+  const many = (x, y, dir) =>
+    '<path d="M' + (x + dir * 12) + ',' + y + ' L' + x + ',' + (y - 8) + ' M' + (x + dir * 12) + ',' + y + ' L' + x + ',' + (y + 8) + ' M' + (x + dir * 12) + ',' + y + ' L' + x + ',' + y + '" stroke="#a78bfa" stroke-width="2" fill="none"/>';
+
+  svg += '<g class="tbl-in" style="animation-delay:3.4s">';
+  svg += one(rfqs.x, rfqIdY, -1) + many(bids.x + bids.w, bidFkY, 1);
+  svg += one(rfqs.x + rfqs.w, rfqIdY, 1) + many(logs.x, logFkY, -1);
+  svg += '<text x="' + (rfqs.x - 42) + '" y="' + (rfqIdY - 10) + '" text-anchor="middle" style="font-size:12px;fill:#c4b5fd">1</text>';
+  svg += '<text x="' + (bids.x + bids.w + 26) + '" y="' + (bidFkY + 22) + '" text-anchor="middle" style="font-size:12px;fill:#c4b5fd">many</text>';
+  svg += '<text x="' + (rfqs.x + rfqs.w + 42) + '" y="' + (rfqIdY - 10) + '" text-anchor="middle" style="font-size:12px;fill:#c4b5fd">1</text>';
+  svg += '<text x="' + (logs.x - 26) + '" y="' + (logFkY + 22) + '" text-anchor="middle" style="font-size:12px;fill:#c4b5fd">many</text>';
+  svg += '</g>';
+
+  // little dots travelling along relations
+  ['rel1', 'rel2'].forEach((id, i) => {
+    svg += '<circle r="5" fill="#c4b5fd" opacity="0"><animateMotion dur="2.4s" begin="' + (3.6 + i * 1.2) + 's" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#' + id + '"/></animateMotion>' +
+      '<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="2.4s" begin="' + (3.6 + i * 1.2) + 's" repeatCount="indefinite"/></circle>';
+  });
+
+  er.innerHTML = svg;
+
+  // ---------------- ranking animation ----------------
+  const rankBids = [
+    { who: 'BlueDart', amt: 47500, time: '5:41' },
+    { who: 'Gati', amt: 45400, time: '5:44' },
+    { who: 'Delhivery', amt: 44500, time: '5:48' },
+    { who: 'BlueDart', amt: 43000, time: '5:53' },
+    { who: 'Gati', amt: 42800, time: '5:57' },
+  ];
+  const rankBox = document.getElementById('rankBox');
+  const rankStepEls = document.querySelectorAll('#rankSteps li');
+  const H = 52;
+
+  const rowEls = rankBids.map((b) => {
+    const el = document.createElement('div');
+    el.className = 'rrow';
+    el.innerHTML = '<span class="badge"></span><span class="who">' + b.who + '</span><span class="time">' + b.time + '</span><span class="amt">₹' + b.amt.toLocaleString('en-IN') + '</span>';
+    rankBox.appendChild(el);
+    return el;
+  });
+
+  // latest bid of each carrier
+  const latestIdx = {};
+  rankBids.forEach((b, i) => (latestIdx[b.who] = i));
+  const keep = Object.values(latestIdx);
+  const sorted = [...keep].sort((a, b) => rankBids[a].amt - rankBids[b].amt);
+
+  let phase = 0;
+  function rankPhase() {
+    rankStepEls.forEach((li, i) => li.classList.toggle('on', i === phase));
+
+    rowEls.forEach((el, i) => {
+      el.classList.remove('old', 'l1', 'show-badge');
+      el.style.opacity = '';
+      if (phase === 0) {
+        el.style.top = i * H + 'px';
+      }
+      if (phase >= 1 && !keep.includes(i)) {
+        el.classList.add('old');
+        if (phase >= 2) el.style.opacity = '0';
+      }
+      if (phase >= 2 && keep.includes(i)) {
+        el.style.top = sorted.indexOf(i) * H + 'px';
+      }
+      if (phase === 3 && keep.includes(i)) {
+        const pos = sorted.indexOf(i);
+        el.querySelector('.badge').textContent = 'L' + (pos + 1);
+        el.classList.add('show-badge');
+        if (pos === 0) el.classList.add('l1');
+      }
+    });
+    phase = (phase + 1) % 4;
+  }
+  rankPhase();
+  setInterval(rankPhase, 2200);
+
+  // ---------------- sample documents ----------------
+  const samples = {
+    rfqs: `{
+  <span class="k">"_id"</span>: <span class="s">ObjectId("6ae030512d3e74602da0eaf7")</span>,
+  <span class="k">"referenceId"</span>: <span class="s">"RFQ-1001"</span>,
+  <span class="k">"name"</span>: <span class="s">"Mumbai to Delhi - 20ft Container"</span>,
+  <span class="k">"pickupDate"</span>: <span class="s">ISODate("2026-10-30T00:00:00Z")</span>,
+  <span class="k">"bidStartTime"</span>: <span class="s">ISODate("2026-10-27T11:00:00Z")</span>,
+  <span class="k">"bidCloseTime"</span>: <span class="s">ISODate("2026-10-27T12:00:00Z")</span>,     <span class="c">// buyer entered 6:00 PM</span>
+  <span class="k">"currentCloseTime"</span>: <span class="s">ISODate("2026-10-27T12:10:00Z")</span>, <span class="c">// extended twice → 6:10 PM</span>
+  <span class="k">"forcedCloseTime"</span>: <span class="s">ISODate("2026-10-27T12:20:00Z")</span>,  <span class="c">// never beyond 6:20 PM</span>
+  <span class="k">"triggerWindowMinutes"</span>: <span class="n">10</span>,
+  <span class="k">"extensionMinutes"</span>: <span class="n">5</span>,
+  <span class="k">"extensionTrigger"</span>: <span class="s">"BID_RECEIVED"</span>,
+  <span class="k">"extensionCount"</span>: <span class="n">2</span>,
+  <span class="k">"totalBids"</span>: <span class="n">5</span>,
+  <span class="k">"lowestBid"</span>: <span class="n">42800</span>,
+  <span class="k">"createdAt"</span>: <span class="s">ISODate("2026-10-27T10:50:00Z")</span>,
+  <span class="k">"updatedAt"</span>: <span class="s">ISODate("2026-10-27T11:57:00Z")</span>
+}`,
+    bids: `{
+  <span class="k">"_id"</span>: <span class="s">ObjectId("6ae0305a2d3e74602da0eb11")</span>,
+  <span class="k">"rfq"</span>: <span class="s">ObjectId("6ae030512d3e74602da0eaf7")</span>,   <span class="c">// → rfqs._id</span>
+  <span class="k">"carrierName"</span>: <span class="s">"Gati Transport"</span>,
+  <span class="k">"freightCharges"</span>: <span class="n">38000</span>,
+  <span class="k">"originCharges"</span>: <span class="n">2800</span>,
+  <span class="k">"destinationCharges"</span>: <span class="n">2000</span>,
+  <span class="k">"totalAmount"</span>: <span class="n">42800</span>,                  <span class="c">// sum, used for ranking</span>
+  <span class="k">"transitTimeDays"</span>: <span class="n">5</span>,
+  <span class="k">"quoteValidity"</span>: <span class="s">ISODate("2026-11-15T00:00:00Z")</span>,
+  <span class="k">"createdAt"</span>: <span class="s">ISODate("2026-10-27T11:57:00Z")</span>,
+  <span class="k">"updatedAt"</span>: <span class="s">ISODate("2026-10-27T11:57:00Z")</span>
+}`,
+    activitylogs: `[
+  {
+    <span class="k">"rfq"</span>: <span class="s">ObjectId("6ae030512d3e74602da0eaf7")</span>,
+    <span class="k">"type"</span>: <span class="s">"BID_PLACED"</span>,
+    <span class="k">"message"</span>: <span class="s">"Gati Transport placed a bid of 42800 (rank L1)"</span>,
+    <span class="k">"createdAt"</span>: <span class="s">ISODate("2026-10-27T11:57:00Z")</span>
+  },
+  {
+    <span class="k">"rfq"</span>: <span class="s">ObjectId("6ae030512d3e74602da0eaf7")</span>,
+    <span class="k">"type"</span>: <span class="s">"TIME_EXTENDED"</span>,
+    <span class="k">"message"</span>: <span class="s">"Auction extended by 5 min"</span>,
+    <span class="k">"oldCloseTime"</span>: <span class="s">ISODate("2026-10-27T12:05:00Z")</span>,
+    <span class="k">"newCloseTime"</span>: <span class="s">ISODate("2026-10-27T12:10:00Z")</span>,
+    <span class="k">"reason"</span>: <span class="s">"New bid received in last 10 minutes"</span>,
+    <span class="k">"createdAt"</span>: <span class="s">ISODate("2026-10-27T11:57:00Z")</span>
+  }
+]`,
+  };
+
+  const tabs = document.getElementById('tabs');
+  const json = document.getElementById('json');
+  let typing = null;
+
+  function showDoc(name) {
+    tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.textContent === name));
+    // reveal line by line
+    const lines = samples[name].split('\n');
+    let i = 0;
+    json.innerHTML = '';
+    clearInterval(typing);
+    typing = setInterval(() => {
+      json.innerHTML += (i > 0 ? '\n' : '') + lines[i];
+      i++;
+      if (i >= lines.length) clearInterval(typing);
+    }, 60);
+  }
+
+  Object.keys(samples).forEach((name) => {
+    const btn = document.createElement('button');
+    btn.textContent = name;
+    btn.onclick = () => showDoc(name);
+    tabs.appendChild(btn);
+  });
+  showDoc('rfqs');
+</script>
+</body>
+</html>
